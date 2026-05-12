@@ -160,6 +160,9 @@ body.offline .ofbadge{display:inline}
   padding:10px 18px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
   transition:background .35s,border-color .35s;
 }
+.tag-palette{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0;border-bottom:1px solid var(--bo)}
+.tp-tag{font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--bo2);color:rgba(var(--ar),.65);background:transparent;transition:all .15s;font-family:'Noto Sans JP',sans-serif}
+.tp-tag:active{border-color:var(--ac);color:var(--ac)}
 .title-field{
   width:100%;background:transparent;border:none;outline:none;
   font-size:16px;font-weight:700;color:var(--tx);
@@ -248,12 +251,14 @@ body.offline .ofbadge{display:inline}
 
   <div class="input-fixed">
     <input class="title-field" id="titleinput" placeholder="タイトル（省略可）" oninput="updateBtn()">
+    <div class="tag-palette" id="tag-palette" style="display:none"></div>
     <textarea class="body-field" id="minput" rows="3"
       placeholder="本文... #タグ も使えます&#10;（Ctrl+Enter で保存）"
       onkeydown="onKey(event)" oninput="updateBtn()"></textarea>
     <div class="ifoot">
       <div class="ifl">
         <button class="bbtn" id="bbtn" onclick="toggleBullet()" title="箇条書き">・</button>
+        <button class="bbtn" onclick="insertHash()" title="ハッシュタグ">#</button>
         <span class="hint" id="hint">Ctrl+Enter で保存</span>
       </div>
       <button class="svbtn" id="svbtn" onclick="addMemo()" disabled>保存</button>
@@ -316,17 +321,44 @@ function addMemo(){
   document.getElementById('minput').value='';
   updateBtn();
   bulletMode=false;document.getElementById('bbtn').classList.remove('on');
+  document.activeElement.blur();
   render();
   requestAnimationFrame(()=>{
     const list=document.getElementById('list');
     list.scrollTo({top:list.scrollHeight,behavior:'smooth'});
   });
-  document.getElementById('minput').focus();
 }
 
 function deleteMemo(id){memos=memos.filter(m=>m.id!==id);expanded.delete(id);save();render()}
 function toggleTag(tag){activeTag=activeTag===tag?null:tag;render()}
 function toggleExpand(id){if(expanded.has(id))expanded.delete(id);else expanded.add(id);render()}
+
+function insertHash(){
+  const ta=document.getElementById('minput');
+  const s=ta.selectionStart,before=ta.value.slice(0,s),after=ta.value.slice(ta.selectionEnd);
+  const needSpace=before.length>0&&!before.endsWith(' ')&&!before.endsWith('\n');
+  const ins=(needSpace?' ':'')+'#';
+  ta.value=before+ins+after;ta.setSelectionRange(s+ins.length,s+ins.length);
+  updateBtn();ta.focus();
+}
+
+function insertTag(tag){
+  const ta=document.getElementById('minput');
+  const s=ta.selectionStart,before=ta.value.slice(0,s),after=ta.value.slice(ta.selectionEnd);
+  const needSpace=before.length>0&&!before.endsWith(' ')&&!before.endsWith('\n');
+  const ins=(needSpace?' ':'')+tag+' ';
+  ta.value=before+ins+after;ta.setSelectionRange(s+ins.length,s+ins.length);
+  updateBtn();ta.focus();
+}
+
+function updateTagPalette(){
+  const allTags=[...new Set(memos.flatMap(m=>m.tags))];
+  const palette=document.getElementById('tag-palette');
+  if(allTags.length){
+    palette.style.display='flex';
+    palette.innerHTML=allTags.map(t=>`<button class="tp-tag" onclick="insertTag('${t}')">${esc(t)}</button>`).join('');
+  } else {palette.style.display='none'}
+}
 
 function toggleBullet(){
   bulletMode=!bulletMode;
@@ -405,6 +437,7 @@ function render(){
     (!q||(m.title||'').toLowerCase().includes(q)||m.text.toLowerCase().includes(q))
   );
   document.getElementById('cnt').textContent=memos.length+' 件';
+  updateTagPalette();
 
   const list=document.getElementById('list');
   if(!filtered.length){
