@@ -230,6 +230,9 @@ body.offline .ofbadge{display:inline}
     </div>
     <div class="hr">
       <button class="ibtn" id="sbtn" onclick="toggleSearch()" title="検索">🔍</button>
+      <button class="ibtn" onclick="exportMemos()" title="バックアップ">💾</button>
+      <button class="ibtn" onclick="document.getElementById('importfile').click()" title="復元">📂</button>
+      <input type="file" id="importfile" accept=".json" style="display:none" onchange="importMemos(event)">
       <button class="ibtn" id="tbtn" onclick="togglePanel()" title="テーマ">🎨</button>
     </div>
   </div>
@@ -432,6 +435,34 @@ function render(){
       ${bodyHtml}${tagsHtml}
     </div>`;
   }).join('');
+}
+
+function exportMemos(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const fname=`memo-backup-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;
+  const blob=new Blob([JSON.stringify(memos,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importMemos(e){
+  const file=e.target.files[0];if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error();
+      if(!confirm(`${data.length}件のメモを復元します。現在のメモと統合されます。よろしいですか？`)) return;
+      const existingIds=new Set(memos.map(m=>m.id));
+      const merged=[...memos,...data.filter(m=>!existingIds.has(m.id))];
+      merged.sort((a,b)=>a.createdAt-b.createdAt);
+      memos=merged;save();render();
+      alert(`復元完了！合計${memos.length}件のメモがあります。`);
+    }catch{alert('ファイルの読み込みに失敗しました。')}
+    e.target.value='';
+  };
+  reader.readAsText(file);
 }
 
 window.addEventListener('online',()=>document.body.classList.remove('offline'));
