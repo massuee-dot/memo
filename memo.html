@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="メモ帳">
 <title>メモ帳</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%231A2E78'/><text x='48' y='65' font-size='52' text-anchor='middle'>✏</text></svg>">
+<link rel="apple-touch-icon" id="app-icon" href="">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -506,6 +506,22 @@ if('serviceWorker' in navigator){
   const sw=`const C='hamu-sw-v6';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll([self.location.href])));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const cl=r.clone();caches.open(C).then(ch=>ch.put(e.request,cl));return r})))});`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
 }
+
+// ホーム画面アイコンをCanvasで生成
+(function(){
+  try{
+    const c=document.createElement('canvas');
+    c.width=c.height=180;
+    const x=c.getContext('2d');
+    x.fillStyle='#ffffff';
+    x.fillRect(0,0,180,180);
+    x.font='110px serif';
+    x.textAlign='center';
+    x.textBaseline='middle';
+    x.fillText('📓',90,95);
+    document.getElementById('app-icon').href=c.toDataURL();
+  }catch(e){}
+})();
 
 load();
 document.documentElement.setAttribute('data-theme',curTheme);
